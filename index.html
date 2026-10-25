@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>3D Periodic Table — Google-Style Interactive Reference</title>
+  <!-- Load Tailwind CSS for responsive layout utilities -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Load Google Font Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+
+  <!-- =====================================================================
+       STYLE.CSS SECTION
+       Clean, scientific Google-style pastel palette and 18-column grid
+       ===================================================================== -->
+  <style>
+    :root {
+      --bg-page: #ffffff;
+      --text-primary: #202124;
+      --text-secondary: #5f6368;
+      --border-subtle: #dadce0;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: var(--bg-page);
+      color: var(--text-primary);
+      margin: 0;
+      padding: 0;
+      -webkit-font-smoothing: antialiased;
+    }
+
+    /* 18-Column Standard Periodic Table Grid */
+    .periodic-table-grid {
+      display: grid;
+      grid-template-columns: repeat(18, minmax(62px, 1fr));
+      grid-auto-rows: 74px;
+      gap: 4px;
+      min-width: 1180px;
+    }
+
+    /* Visual spacer between main table (rows 1-7) and f-block (rows 9-10) */
+    .f-block-spacer {
+      grid-column: 1 / -1;
+      grid-row: 8;
+      height: 18px;
+    }
+
+    /* Series label markers in column 3 for Lanthanides & Actinides rows */
+    .series-marker {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.68rem;
+      font-weight: 600;
+      color: #5f6368;
+      background-color: #f8f9fa;
+      border: 1px dashed #dadce0;
+      border-radius: 6px;
+      padding: 4px;
+      text-align: center;
+      user-select: none;
+    }
+
+    /* Element Tile Button Styling */
+    .element-tile {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      align-items: center;
+      padding: 4px 3px 3px 3px;
+      border-radius: 6px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: transform 0.16s cubic-bezier(0.2, 0, 0, 1),
+                  box-shadow 0.16s cubic-bezier(0.2, 0, 0, 1),
+                  opacity 0.2s ease,
+                  filter 0.2s ease,
+                  border-color 0.16s ease;
+      text-align: center;
+      user-select: none;
+      outline: none;
+      width: 100%;
+      height: 100%;
+    }
+
+    .element-tile:hover,
+    .element-tile:focus-visible {
+      transform: translateY(-2px) scale(1.05);
+      z-index: 20;
+      box-shadow: 0 6px 14px rgba(32, 33, 36, 0.14);
+    }
+
+    .element-tile.selected-tile {
+      outline: 2px solid #202124;
+      outline-offset: 1px;
+      transform: scale(1.04);
+      z-index: 15;
+      box-shadow: 0 4px 12px rgba(32, 33, 36, 0.18);
+    }
+
+    /* Dimmed state when filtering by category */
+    .element-tile.dimmed {
+      opacity: 0.18;
+      filter: grayscale(45%);
+      transform: none;
+    }
+
+    .element-tile.highlighted {
+      box-shadow: 0 2px 6px rgba(32, 33, 36, 0.1);
+    }
+
+    /* Tile Typography */
+    .tile-number {
+      align-self: flex-start;
+      font-size: 0.64rem;
+      font-weight: 600;
+      line-height: 1;
+      padding-left: 2px;
+    }
+
+    .tile-symbol {
+      font-size: 1.2rem;
+      font-weight: 700;
+      line-height: 1.05;
+      letter-spacing: -0.02em;
+      margin-top: -1px;
+    }
+
+    .tile-name {
+      font-size: 0.58rem;
+      font-weight: 500;
+      line-height: 1.1;
+      max-width: 100%;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      padding: 0 1px;
+    }
+
+    .tile-mass {
+      font-size: 0.53rem;
+      font-weight: 400;
+      line-height: 1;
+      opacity: 0.82;
+    }
+
+    /* =====================================================================
+       Google-Style Pastel Category Color Themes (10 Categories)
+       ===================================================================== */
+    /* 1. Alkali Metals (Soft Cyan / Teal) */
+    .cat-alkali-metals {
+      background-color: #d9f2f7;
+      border-color: #b4e4ee;
+      color: #005b6e;
+    }
+    .dot-alkali-metals { border-color: #007b94; background-color: #d9f2f7; }
+
+    /* 2. Alkaline Earth Metals (Soft Rose / Red) */
+    .cat-alkaline-earth-metals {
+      background-color: #fde7ea;
+      border-color: #f9cbd2;
+      color: #8c1d2e;
+    }
+    .dot-alkaline-earth-metals { border-color: #b8253b; background-color: #fde7ea; }
+
+    /* 3. Transition Metals (Soft Lavender / Purple) */
+    .cat-transition-metals {
+      background-color: #f0ebff;
+      border-color: #dcd1ff;
+      color: #482999;
+    }
+    .dot-transition-metals { border-color: #623cea; background-color: #f0ebff; }
+
+    /* 4. Post-Transition Metals (Soft Mint Green) */
+    .cat-post-transition-metals {
+      background-color: #dcf7e6;
+      border-color: #b8eccb;
+      color: #0d5c2f;
+    }
+    .dot-post-transition-metals { border-color: #167940; background-color: #dcf7e6; }
+
+    /* 5. Metalloids (Soft Amber / Gold) */
+    .cat-metalloids {
+      background-color: #fef3d6;
+      border-color: #fae1a4;
+      color: #704b00;
+    }
+    .dot-metalloids { border-color: #9e6b00; background-color: #fef3d6; }
+
+    /* 6. Other Nonmetals (Soft Sky Blue) */
+    .cat-other-nonmetals {
+      background-color: #e2efff;
+      border-color: #bfd9ff;
+      color: #0b4a8f;
+    }
+    .dot-other-nonmetals { border-color: #1764c0; background-color: #e2efff; }
+
+    /* 7. Halogens (Soft Indigo / Periwinkle Blue) */
+    .cat-halogens {
+      background-color: #e0f2fe;
+      border-color: #bae6fd;
+      color: #035388;
+    }
+    .dot-halogens { border-color: #0284c7; background-color: #e0f2fe; }
+
+    /* 8. Noble Gases (Soft Magenta / Pink) */
+    .cat-noble-gases {
+      background-color: #fce4f3;
+      border-color: #f7c3e4;
+      color: #85125b;
+    }
+    .dot-noble-gases { border-color: #b5197d; background-color: #fce4f3; }
+
+    /* 9. Lanthanides (Soft Ice Blue / Slate Blue) */
+    .cat-lanthanides {
+      background-color: #e3f2fd;
+      border-color: #bbdefb;
+      color: #0d3c61;
+    }
+    .dot-lanthanides { border-color: #1565c0; background-color: #e3f2fd; }
+
+    /* 10. Actinides (Soft Peach / Orange) */
+    .cat-actinides {
+      background-color: #ffe8d6;
+      border-color: #ffd0ad;
+      color: #7c3200;
+    }
+    .dot-actinides { border-color: #c25100; background-color: #ffe8d6; }
+
+    /* Custom Scrollbar for horizontal table wrapper */
+    .table-scroll-container::-webkit-scrollbar {
+      height: 8px;
+    }
+    .table-scroll-container::-webkit-scrollbar-track {
+      background: #f1f3f4;
+      border-radius: 4px;
+    }
+    .table-scroll-container::-webkit-scrollbar-thumb {
+      background: #dadce0;
+      border-radius: 4px;
+    }
+    .table-scroll-container::-webkit-scrollbar-thumb:hover {
+      background: #bdc1c6;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col bg-white text-[#202124]">
+
+  <!-- =====================================================================
+       HEADER & SINGLE CATEGORY FILTER DROPDOWN CONTROL
+       ===================================================================== -->
+  <header class="border-b border-gray-200 bg-white sticky top-0 z-30">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3.5 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div class="flex items-center gap-3">
+        <span class="inline-flex items-center justify-center w-8 h-8 rounded-lg bg-blue-50 text-blue-600 font-bold text-sm border border-blue-200">
+          Pt
+        </span>
+        <div>
+          <h1 class="text-lg sm:text-xl font-semibold tracking-tight text-gray-900">
+            Periodic Table of Elements
+          </h1>
+          <p class="text-xs text-gray-500">
+            Interactive 118-Element Scientific Reference
+          </p>
+        </div>
+      </div>
+
+      <!-- ONLY ONE CONTROL: Category Filter Dropdown -->
+      <div class="flex items-center gap-2.5">
+        <label for="category-select" class="text-xs sm:text-sm font-medium text-gray-600 whitespace-nowrap">
+          Filter Category:
+        </label>
+        <select
+          id="category-select"
+          aria-label="Filter elements by chemical category"
+          class="bg-white border border-gray-300 text-gray-800 text-sm rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition shadow-sm cursor-pointer"
+        >
+          <option value="All Categories">All Categories</option>
+          <option value="Alkali Metals">Alkali Metals</option>
+          <option value="Alkaline Earth Metals">Alkaline Earth Metals</option>
+          <option value="Transition Metals">Transition Metals</option>
+          <option value="Post-Transition Metals">Post-Transition Metals</option>
+          <option value="Metalloids">Metalloids</option>
+          <option value="Other Nonmetals">Other Nonmetals</option>
+          <option value="Halogens">Halogens</option>
+          <option value="Noble Gases">Noble Gases</option>
+          <option value="Lanthanides">Lanthanides</option>
+          <option value="Actinides">Actinides</option>
+        </select>
+      </div>
+    </div>
+  </header>
+
+  <!-- =====================================================================
+       MAIN CONTENT CONTAINER
+       ===================================================================== -->
+  <main class="max-w-[1440px] w-full mx-auto px-4 sm:px-6 py-5 flex-1 flex flex-col gap-6">
+
+    <!-- Horizontally Scrollable Periodic Table Section -->
+    <section aria-label="Periodic Table Grid" class="w-full">
+      <div class="table-scroll-container overflow-x-auto pb-3 pt-1 px-1">
+        <div id="periodic-table" class="periodic-table-grid" role="grid" aria-label="118 Chemical Elements">
+          <!-- Dynamically populated by JavaScript -->
+        </div>
+      </div>
+
+      <!-- Visual Color Legend (Non-interactive reference key matching Google's bottom bar) -->
+      <div class="mt-3 pt-3 border-t border-gray-100 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-gray-700" aria-hidden="true">
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-alkali-metals inline-block"></span>
+          <span>Alkali Metals</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-alkaline-earth-metals inline-block"></span>
+          <span>Alkaline Earth Metals</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-transition-metals inline-block"></span>
+          <span>Transition Metals</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-post-transition-metals inline-block"></span>
+          <span>Post-Transition Metals</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-metalloids inline-block"></span>
+          <span>Metalloids</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-other-nonmetals inline-block"></span>
+          <span>Other Nonmetals</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-halogens inline-block"></span>
+          <span>Halogens</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-noble-gases inline-block"></span>
+          <span>Noble Gases</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-lanthanides inline-block"></span>
+          <span>Lanthanides</span>
+        </div>
+        <div class="flex items-center gap-1.5">
+          <span class="w-3 h-3 rounded-full border-2 dot-actinides inline-block"></span>
+          <span>Actinides</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- =====================================================================
+         ELEMENT DETAILS PANEL (Below the Periodic Table)
+         ===================================================================== -->
+    <section
+      id="element-details-panel"
+      aria-live="polite"
+      class="bg-gray-50/80 border border-gray-200 rounded-2xl p-5 sm:p-6 shadow-sm transition-all"
+    >
+      <!-- Placeholder Message (Shown before an element is clicked) -->
+      <div id="details-placeholder" class="py-8 text-center">
+        <p class="text-sm sm:text-base font-medium text-gray-600">
+          Select any element in the periodic table above to inspect its atomic structure and chemical properties.
+        </p>
+      </div>
+
+      <!-- Active Element Details Content (Hidden until an element is clicked) -->
+      <div id="details-content" class="hidden">
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-6 pb-5 border-b border-gray-200">
+          <!-- Element Header & Badge -->
+          <div class="flex items-center gap-4">
+            <div
+              id="detail-tile-badge"
+              class="w-20 h-20 rounded-xl border flex flex-col items-center justify-center shrink-0 shadow-sm"
+            >
+              <span id="detail-badge-number" class="text-xs font-semibold leading-none mb-1"></span>
+              <span id="detail-badge-symbol" class="text-2xl font-bold leading-none"></span>
+              <span id="detail-badge-mass" class="text-[11px] mt-1 opacity-80"></span>
+            </div>
+
+            <div>
+              <div class="flex flex-wrap items-baseline gap-2">
+                <h2 id="detail-title" class="text-2xl sm:text-3xl font-bold text-gray-900"></h2>
+                <span id="detail-atomic-sup" class="text-sm font-semibold text-gray-500"></span>
+              </div>
+              <div class="mt-1.5 flex items-center gap-2">
+                <span id="detail-category-dot" class="w-2.5 h-2.5 rounded-full border-2 inline-block"></span>
+                <span id="detail-category-label" class="text-sm font-medium text-gray-700"></span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Bohr Shell Orbit SVG Preview -->
+          <div class="flex items-center gap-4 bg-white border border-gray-200 rounded-xl px-4 py-2.5 self-start lg:self-auto">
+            <svg id="bohr-svg" width="76" height="76" viewBox="0 0 100 100" class="shrink-0" aria-label="Bohr model representation">
+              <!-- Populated dynamically -->
+            </svg>
+            <div class="text-xs text-gray-600">
+              <div class="font-semibold text-gray-800 mb-0.5">Bohr Model Representation</div>
+              <div id="detail-shells-text" class="font-mono text-[11px] text-gray-500"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 10 Required Element Properties Grid -->
+        <div class="mt-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3.5">
+          <!-- 1. Element Name & Symbol -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Element Name &amp; Symbol</div>
+            <div id="prop-name-symbol" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 2. Atomic Number -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Atomic Number</div>
+            <div id="prop-atomic-number" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 3. Atomic Mass -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Atomic Mass</div>
+            <div id="prop-atomic-mass" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 4. Category -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Category</div>
+            <div id="prop-category" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 5. State at Room Temperature -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">State (Room Temp)</div>
+            <div id="prop-state" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 6. Electron Configuration -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Electron Configuration</div>
+            <div id="prop-electron-config" class="mt-1 text-sm sm:text-base font-semibold text-gray-900 font-mono"></div>
+          </div>
+
+          <!-- 7. Melting Point -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Melting Point</div>
+            <div id="prop-melting-point" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 8. Boiling Point -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Boiling Point</div>
+            <div id="prop-boiling-point" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 9. Density -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Density</div>
+            <div id="prop-density" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+
+          <!-- 10. Electronegativity -->
+          <div class="bg-white p-3.5 rounded-xl border border-gray-200/80">
+            <div class="text-xs font-medium text-gray-500 uppercase tracking-wider">Electronegativity</div>
+            <div id="prop-electronegativity" class="mt-1 text-sm sm:text-base font-semibold text-gray-900"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- =====================================================================
+       SCRIPT.JS SECTION
+       Complete 118-element dataset, grid builder, category filter, and details
+       ===================================================================== -->
+  <script>
+    /**
+     * Map category names to CSS theme classes.
+     */
+    const CATEGORY_CLASS_MAP = {
+      "Alkali Metals": { tile: "cat-alkali-metals", dot: "dot-alkali-metals" },
+      "Alkaline Earth Metals": { tile: "cat-alkaline-earth-metals", dot: "dot-alkaline-earth-metals" },
+      "Transition Metals": { tile: "cat-transition-metals", dot: "dot-transition-metals" },
+      "Post-Transition Metals": { tile: "cat-post-transition-metals", dot: "dot-post-transition-metals" },
+      "Metalloids": { tile: "cat-metalloids", dot: "dot-metalloids" },
+      "Other Nonmetals": { tile: "cat-other-nonmetals", dot: "dot-other-nonmetals" },
+      "Halogens": { tile: "cat-halogens", dot: "dot-halogens" },
+      "Noble Gases": { tile: "cat-noble-gases", dot: "dot-noble-gases" },
+      "Lanthanides": { tile: "cat-lanthanides", dot: "dot-lanthanides" },
+      "Actinides": { tile: "cat-actinides", dot: "dot-actinides" }
+    };
+
+    /**
+     * Complete dataset for all 118 officially recognized chemical elements.
+     * Fields tuple format for compact readability:
+     * [
+     *   0: atomicNumber,
+     *   1: symbol,
+     *   2: name,
+     *   3: atomicMass (string, u),
+     *   4: category (one of the 10 exact categories),
+     *   5: row (1-7 for main table, 9 for Lanthanides, 10 for Actinides),
+     *   6: col (1-18),
+     *   7: stateAtRoomTemp,
+     *   8: electronConfiguration,
+     *   9: meltingPoint (°C, or null if unavailable),
+     *   10: boilingPoint (°C, or null if unavailable),
+     *   11: density (g/cm³, or null if unavailable),
+     *   12: electronegativity (Pauling scale, or null if unavailable)
+     * ]
+     */
+    const RAW_ELEMENTS = [
+      // Period 1
+      [1, "H", "Hydrogen", "1.008", "Other Nonmetals", 1, 1, "Gas", "1s¹", -259.16, -252.87, 0.00008988, 2.20],
+      [2, "He", "Helium", "4.0026", "Noble Gases", 1, 18, "Gas", "1s²", -272.20, -268.93, 0.0001785, null],
+
+      // Period 2
+      [3, "Li", "Lithium", "6.94", "Alkali Metals", 2, 1, "Solid", "[He] 2s¹", 180.50, 1342, 0.534, 0.98],
+      [4, "Be", "Beryllium", "9.0122", "Alkaline Earth Metals", 2, 2, "Solid", "[He] 2s²", 1287, 2469, 1.85, 1.57],
+      [5, "B", "Boron", "10.81", "Metalloids", 2, 13, "Solid", "[He] 2s² 2p¹", 2076, 3927, 2.34, 2.04],
+      [6, "C", "Carbon", "12.011", "Other Nonmetals", 2, 14, "Solid", "[He] 2s² 2p²", 3550, 4027, 2.267, 2.55],
+      [7, "N", "Nitrogen", "14.007", "Other Nonmetals", 2, 15, "Gas", "[He] 2s² 2p³", -210.00, -195.79, 0.0012506, 3.04],
+      [8, "O", "Oxygen", "15.999", "Other Nonmetals", 2, 16, "Gas", "[He] 2s² 2p⁴", -218.79, -182.96, 0.001429, 3.44],
+      [9, "F", "Fluorine", "18.998", "Halogens", 2, 17, "Gas", "[He] 2s² 2p⁵", -219.67, -188.11, 0.001696, 3.98],
+      [10, "Ne", "Neon", "20.180", "Noble Gases", 2, 18, "Gas", "[He] 2s² 2p⁶", -248.59, -246.05, 0.0008999, null],
+
+      // Period 3
+      [11, "Na", "Sodium", "22.990", "Alkali Metals", 3, 1, "Solid", "[Ne] 3s¹", 97.79, 882.94, 0.968, 0.93],
+      [12, "Mg", "Magnesium", "24.305", "Alkaline Earth Metals", 3, 2, "Solid", "[Ne] 3s²", 650, 1091, 1.738, 1.31],
+      [13, "Al", "Aluminium", "26.982", "Post-Transition Metals", 3, 13, "Solid", "[Ne] 3s² 3p¹", 660.32, 2470, 2.70, 1.61],
+      [14, "Si", "Silicon", "28.085", "Metalloids", 3, 14, "Solid", "[Ne] 3s² 3p²", 1414, 3265, 2.3296, 1.90],
+      [15, "P", "Phosphorus", "30.974", "Other Nonmetals", 3, 15, "Solid", "[Ne] 3s² 3p³", 44.15, 280.5, 1.823, 2.19],
+      [16, "S", "Sulfur", "32.06", "Other Nonmetals", 3, 16, "Solid", "[Ne] 3s² 3p⁴", 115.21, 444.6, 2.07, 2.58],
+      [17, "Cl", "Chlorine", "35.45", "Halogens", 3, 17, "Gas", "[Ne] 3s² 3p⁵", -101.5, -34.04, 0.003214, 3.16],
+      [18, "Ar", "Argon", "39.948", "Noble Gases", 3, 18, "Gas", "[Ne] 3s² 3p⁶", -189.34, -185.85, 0.0017837, null],
+
+      // Period 4
+      [19, "K", "Potassium", "39.098", "Alkali Metals", 4, 1, "Solid", "[Ar] 4s¹", 63.5, 759, 0.862, 0.82],
+      [20, "Ca", "Calcium", "40.078", "Alkaline Earth Metals", 4, 2, "Solid", "[Ar] 4s²", 842, 1484, 1.55, 1.00],
+      [21, "Sc", "Scandium", "44.956", "Transition Metals", 4, 3, "Solid", "[Ar] 3d¹ 4s²", 1541, 2836, 2.985, 1.36],
+      [22, "Ti", "Titanium", "47.867", "Transition Metals", 4, 4, "Solid", "[Ar] 3d² 4s²", 1668, 3287, 4.506, 1.54],
+      [23, "V", "Vanadium", "50.942", "Transition Metals", 4, 5, "Solid", "[Ar] 3d³ 4s²", 1910, 3407, 6.11, 1.63],
+      [24, "Cr", "Chromium", "51.996", "Transition Metals", 4, 6, "Solid", "[Ar] 3d⁵ 4s¹", 1907, 2671, 7.19, 1.66],
+      [25, "Mn", "Manganese", "54.938", "Transition Metals", 4, 7, "Solid", "[Ar] 3d⁵ 4s²", 1246, 2061, 7.21, 1.55],
+      [26, "Fe", "Iron", "55.845", "Transition Metals", 4, 8, "Solid", "[Ar] 3d⁶ 4s²", 1538, 2862, 7.874, 1.83],
+      [27, "Co", "Cobalt", "58.933", "Transition Metals", 4, 9, "Solid", "[Ar] 3d⁷ 4s²", 1495, 2927, 8.90, 1.88],
+      [28, "Ni", "Nickel", "58.693", "Transition Metals", 4, 10, "Solid", "[Ar] 3d⁸ 4s²", 1455, 2730, 8.908, 1.91],
+      [29, "Cu", "Copper", "63.546", "Transition Metals", 4, 11, "Solid", "[Ar] 3d¹⁰ 4s¹", 1084.62, 2562, 8.96, 1.90],
+      [30, "Zn", "Zinc", "65.38", "Transition Metals", 4, 12, "Solid", "[Ar] 3d¹⁰ 4s²", 419.53, 907, 7.14, 1.65],
+      [31, "Ga", "Gallium", "69.723", "Post-Transition Metals", 4, 13, "Solid", "[Ar] 3d¹⁰ 4s² 4p¹", 29.76, 2400, 5.91, 1.81],
+      [32, "Ge", "Germanium", "72.630", "Metalloids", 4, 14, "Solid", "[Ar] 3d¹⁰ 4s² 4p²", 938.25, 2833, 5.323, 2.01],
+      [33, "As", "Arsenic", "74.922", "Metalloids", 4, 15, "Solid", "[Ar] 3d¹⁰ 4s² 4p³", 817, 614, 5.727, 2.18],
+      [34, "Se", "Selenium", "78.971", "Other Nonmetals", 4, 16, "Solid", "[Ar] 3d¹⁰ 4s² 4p⁴", 221, 685, 4.81, 2.55],
+      [35, "Br", "Bromine", "79.904", "Halogens", 4, 17, "Liquid", "[Ar] 3d¹⁰ 4s² 4p⁵", -7.2, 58.8, 3.1028, 2.96],
+      [36, "Kr", "Krypton", "83.798", "Noble Gases", 4, 18, "Gas", "[Ar] 3d¹⁰ 4s² 4p⁶", -157.37, -153.41, 0.003749, 3.00],
+
+      // Period 5
+      [37, "Rb", "Rubidium", "85.468", "Alkali Metals", 5, 1, "Solid", "[Kr] 5s¹", 39.30, 688, 1.532, 0.82],
+      [38, "Sr", "Strontium", "87.62", "Alkaline Earth Metals", 5, 2, "Solid", "[Kr] 5s²", 777, 1377, 2.64, 0.95],
+      [39, "Y", "Yttrium", "88.906", "Transition Metals", 5, 3, "Solid", "[Kr] 4d¹ 5s²", 1526, 2930, 4.472, 1.22],
+      [40, "Zr", "Zirconium", "91.224", "Transition Metals", 5, 4, "Solid", "[Kr] 4d² 5s²", 1855, 4409, 6.52, 1.33],
+      [41, "Nb", "Niobium", "92.906", "Transition Metals", 5, 5, "Solid", "[Kr] 4d⁴ 5s¹", 2477, 4744, 8.57, 1.60],
+      [42, "Mo", "Molybdenum", "95.95", "Transition Metals", 5, 6, "Solid", "[Kr] 4d⁵ 5s¹", 2623, 4639, 10.28, 2.16],
+      [43, "Tc", "Technetium", "(98)", "Transition Metals", 5, 7, "Solid", "[Kr] 4d⁵ 5s²", 2157, 4265, 11.5, 1.90],
+      [44, "Ru", "Ruthenium", "101.07", "Transition Metals", 5, 8, "Solid", "[Kr] 4d⁷ 5s¹", 2334, 4150, 12.45, 2.20],
+      [45, "Rh", "Rhodium", "102.91", "Transition Metals", 5, 9, "Solid", "[Kr] 4d⁸ 5s¹", 1964, 3695, 12.41, 2.28],
+      [46, "Pd", "Palladium", "106.42", "Transition Metals", 5, 10, "Solid", "[Kr] 4d¹⁰", 1554.9, 2963, 12.023, 2.20],
+      [47, "Ag", "Silver", "107.87", "Transition Metals", 5, 11, "Solid", "[Kr] 4d¹⁰ 5s¹", 961.78, 2162, 10.49, 1.93],
+      [48, "Cd", "Cadmium", "112.41", "Transition Metals", 5, 12, "Solid", "[Kr] 4d¹⁰ 5s²", 321.07, 767, 8.65, 1.69],
+      [49, "In", "Indium", "114.82", "Post-Transition Metals", 5, 13, "Solid", "[Kr] 4d¹⁰ 5s² 5p¹", 156.60, 2072, 7.31, 1.78],
+      [50, "Sn", "Tin", "118.71", "Post-Transition Metals", 5, 14, "Solid", "[Kr] 4d¹⁰ 5s² 5p²", 231.93, 2602, 7.265, 1.96],
+      [51, "Sb", "Antimony", "121.76", "Metalloids", 5, 15, "Solid", "[Kr] 4d¹⁰ 5s² 5p³", 630.63, 1635, 6.697, 2.05],
+      [52, "Te", "Tellurium", "127.60", "Metalloids", 5, 16, "Solid", "[Kr] 4d¹⁰ 5s² 5p⁴", 449.51, 988, 6.24, 2.10],
+      [53, "I", "Iodine", "126.90", "Halogens", 5, 17, "Solid", "[Kr] 4d¹⁰ 5s² 5p⁵", 113.7, 184.3, 4.933, 2.66],
+      [54, "Xe", "Xenon", "131.29", "Noble Gases", 5, 18, "Gas", "[Kr] 4d¹⁰ 5s² 5p⁶", -111.75, -108.10, 0.005887, 2.60],
+
+      // Period 6 (55 Cs, 56 Ba, 57 La in col 3, then 72 Hf to 86 Rn in cols 4-18)
+      [55, "Cs", "Caesium", "132.91", "Alkali Metals", 6, 1, "Solid", "[Xe] 6s¹", 28.5, 671, 1.93, 0.79],
+      [56, "Ba", "Barium", "137.33", "Alkaline Earth Metals", 6, 2, "Solid", "[Xe] 6s²", 727, 1845, 3.51, 0.89],
+      [57, "La", "Lanthanum", "138.91", "Lanthanides", 6, 3, "Solid", "[Xe] 5d¹ 6s²", 920, 3464, 6.162, 1.10],
+
+      // Lanthanide Series (Row 9, Columns 4 to 17: 58 Ce to 71 Lu)
+      [58, "Ce", "Cerium", "140.12", "Lanthanides", 9, 4, "Solid", "[Xe] 4f¹ 5d¹ 6s²", 795, 3443, 6.770, 1.12],
+      [59, "Pr", "Praseodymium", "140.91", "Lanthanides", 9, 5, "Solid", "[Xe] 4f³ 6s²", 935, 3130, 6.77, 1.13],
+      [60, "Nd", "Neodymium", "144.24", "Lanthanides", 9, 6, "Solid", "[Xe] 4f⁴ 6s²", 1024, 3074, 7.01, 1.14],
+      [61, "Pm", "Promethium", "(145)", "Lanthanides", 9, 7, "Solid", "[Xe] 4f⁵ 6s²", 1042, 3000, 7.26, 1.13],
+      [62, "Sm", "Samarium", "150.36", "Lanthanides", 9, 8, "Solid", "[Xe] 4f⁶ 6s²", 1072, 1900, 7.52, 1.17],
+      [63, "Eu", "Europium", "151.96", "Lanthanides", 9, 9, "Solid", "[Xe] 4f⁷ 6s²", 826, 1529, 5.244, 1.20],
+      [64, "Gd", "Gadolinium", "157.25", "Lanthanides", 9, 10, "Solid", "[Xe] 4f⁷ 5d¹ 6s²", 1312, 3273, 7.90, 1.20],
+      [65, "Tb", "Terbium", "158.93", "Lanthanides", 9, 11, "Solid", "[Xe] 4f⁹ 6s²", 1356, 3123, 8.23, 1.20],
+      [66, "Dy", "Dysprosium", "162.50", "Lanthanides", 9, 12, "Solid", "[Xe] 4f¹⁰ 6s²", 1407, 2562, 8.540, 1.22],
+      [67, "Ho", "Holmium", "164.93", "Lanthanides", 9, 13, "Solid", "[Xe] 4f¹¹ 6s²", 1461, 2600, 8.79, 1.23],
+      [68, "Er", "Erbium", "167.26", "Lanthanides", 9, 14, "Solid", "[Xe] 4f¹² 6s²", 1529, 2868, 9.066, 1.24],
+      [69, "Tm", "Thulium", "168.93", "Lanthanides", 9, 15, "Solid", "[Xe] 4f¹³ 6s²", 1545, 1950, 9.32, 1.25],
+      [70, "Yb", "Ytterbium", "173.05", "Lanthanides", 9, 16, "Solid", "[Xe] 4f¹⁴ 6s²", 824, 1196, 6.90, 1.10],
+      [71, "Lu", "Lutetium", "174.97", "Lanthanides", 9, 17, "Solid", "[Xe] 4f¹⁴ 5d¹ 6s²", 1652, 3402, 9.841, 1.27],
+
+      // Period 6 continued (Columns 4 to 18)
+      [72, "Hf", "Hafnium", "178.49", "Transition Metals", 6, 4, "Solid", "[Xe] 4f¹⁴ 5d² 6s²", 2233, 4603, 13.31, 1.30],
+      [73, "Ta", "Tantalum", "180.95", "Transition Metals", 6, 5, "Solid", "[Xe] 4f¹⁴ 5d³ 6s²", 3017, 5458, 16.69, 1.50],
+      [74, "W", "Tungsten", "183.84", "Transition Metals", 6, 6, "Solid", "[Xe] 4f¹⁴ 5d⁴ 6s²", 3422, 5930, 19.25, 2.36],
+      [75, "Re", "Rhenium", "186.21", "Transition Metals", 6, 7, "Solid", "[Xe] 4f¹⁴ 5d⁵ 6s²", 3186, 5596, 21.02, 1.90],
+      [76, "Os", "Osmium", "190.23", "Transition Metals", 6, 8, "Solid", "[Xe] 4f¹⁴ 5d⁶ 6s²", 3033, 5012, 22.59, 2.20],
+      [77, "Ir", "Iridium", "192.22", "Transition Metals", 6, 9, "Solid", "[Xe] 4f¹⁴ 5d⁷ 6s²", 2446, 4130, 22.56, 2.20],
+      [78, "Pt", "Platinum", "195.08", "Transition Metals", 6, 10, "Solid", "[Xe] 4f¹⁴ 5d⁹ 6s¹", 1768.3, 3825, 21.45, 2.28],
+      [79, "Au", "Gold", "196.97", "Transition Metals", 6, 11, "Solid", "[Xe] 4f¹⁴ 5d¹⁰ 6s¹", 1064.18, 2970, 19.30, 2.54],
+      [80, "Hg", "Mercury", "200.59", "Transition Metals", 6, 12, "Liquid", "[Xe] 4f¹⁴ 5d¹⁰ 6s²", -38.83, 356.73, 13.534, 2.00],
+      [81, "Tl", "Thallium", "204.38", "Post-Transition Metals", 6, 13, "Solid", "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p¹", 304, 1473, 11.85, 1.62],
+      [82, "Pb", "Lead", "207.2", "Post-Transition Metals", 6, 14, "Solid", "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p²", 327.46, 1749, 11.34, 1.87],
+      [83, "Bi", "Bismuth", "208.98", "Post-Transition Metals", 6, 15, "Solid", "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p³", 271.5, 1564, 9.78, 2.02],
+      [84, "Po", "Polonium", "(209)", "Post-Transition Metals", 6, 16, "Solid", "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁴", 254, 962, 9.196, 2.00],
+      [85, "At", "Astatine", "(210)", "Halogens", 6, 17, "Solid", "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁵", 302, 337, null, 2.20],
+      [86, "Rn", "Radon", "(222)", "Noble Gases", 6, 18, "Gas", "[Xe] 4f¹⁴ 5d¹⁰ 6s² 6p⁶", -71, -61.7, 0.00973, 2.20],
+
+      // Period 7 (87 Fr, 88 Ra, 89 Ac in col 3, then 104 Rf to 118 Og in cols 4-18)
+      [87, "Fr", "Francium", "(223)", "Alkali Metals", 7, 1, "Solid", "[Rn] 7s¹", 27, 677, 2.48, 0.79],
+      [88, "Ra", "Radium", "(226)", "Alkaline Earth Metals", 7, 2, "Solid", "[Rn] 7s²", 700, 1737, 5.50, 0.90],
+      [89, "Ac", "Actinium", "(227)", "Actinides", 7, 3, "Solid", "[Rn] 6d¹ 7s²", 1050, 3198, 10.07, 1.10],
+
+      // Actinide Series (Row 10, Columns 4 to 17: 90 Th to 103 Lr)
+      [90, "Th", "Thorium", "232.04", "Actinides", 10, 4, "Solid", "[Rn] 6d² 7s²", 1750, 4788, 11.72, 1.30],
+      [91, "Pa", "Protactinium", "231.04", "Actinides", 10, 5, "Solid", "[Rn] 5f² 6d¹ 7s²", 1568, 4027, 15.37, 1.50],
+      [92, "U", "Uranium", "238.03", "Actinides", 10, 6, "Solid", "[Rn] 5f³ 6d¹ 7s²", 1132.2, 4131, 19.1, 1.38],
+      [93, "Np", "Neptunium", "(237)", "Actinides", 10, 7, "Solid", "[Rn] 5f⁴ 6d¹ 7s²", 644, 3902, 20.45, 1.36],
+      [94, "Pu", "Plutonium", "(244)", "Actinides", 10, 8, "Solid", "[Rn] 5f⁶ 7s²", 639.4, 3228, 19.816, 1.28],
+      [95, "Am", "Americium", "(243)", "Actinides", 10, 9, "Solid", "[Rn] 5f⁷ 7s²", 1176, 2607, 12.0, 1.13],
+      [96, "Cm", "Curium", "(247)", "Actinides", 10, 10, "Solid", "[Rn] 5f⁷ 6d¹ 7s²", 1340, 3110, 13.51, 1.28],
+      [97, "Bk", "Berkelium", "(247)", "Actinides", 10, 11, "Solid", "[Rn] 5f⁹ 7s²", 986, 2627, 14.78, 1.30],
+      [98, "Cf", "Californium", "(251)", "Actinides", 10, 12, "Solid", "[Rn] 5f¹⁰ 7s²", 900, 1470, 15.1, 1.30],
+      [99, "Es", "Einsteinium", "(252)", "Actinides", 10, 13, "Solid", "[Rn] 5f¹¹ 7s²", 860, 996, 8.84, 1.30],
+      [100, "Fm", "Fermium", "(257)", "Actinides", 10, 14, "Solid", "[Rn] 5f¹² 7s²", 1527, null, 9.7, 1.30],
+      [101, "Md", "Mendelevium", "(258)", "Actinides", 10, 15, "Solid", "[Rn] 5f¹³ 7s²", 827, null, 10.3, 1.30],
+      [102, "No", "Nobelium", "(259)", "Actinides", 10, 16, "Solid", "[Rn] 5f¹⁴ 7s²", 827, null, 9.9, 1.30],
+      [103, "Lr", "Lawrencium", "(266)", "Actinides", 10, 17, "Solid", "[Rn] 5f¹⁴ 7s² 7p¹", 1627, null, 14.4, 1.30],
+
+      // Period 7 continued (Columns 4 to 18: 104 Rf to 118 Og)
+      [104, "Rf", "Rutherfordium", "(267)", "Transition Metals", 7, 4, "Solid", "[Rn] 5f¹⁴ 6d² 7s²", 2100, 5500, 17.0, null],
+      [105, "Db", "Dubnium", "(268)", "Transition Metals", 7, 5, "Solid", "[Rn] 5f¹⁴ 6d³ 7s²", null, null, 21.6, null],
+      [106, "Sg", "Seaborgium", "(269)", "Transition Metals", 7, 6, "Solid", "[Rn] 5f¹⁴ 6d⁴ 7s²", null, null, 23.0, null],
+      [107, "Bh", "Bohrium", "(270)", "Transition Metals", 7, 7, "Solid", "[Rn] 5f¹⁴ 6d⁵ 7s²", null, null, 26.0, null],
+      [108, "Hs", "Hassium", "(277)", "Transition Metals", 7, 8, "Solid", "[Rn] 5f¹⁴ 6d⁶ 7s²", null, null, 27.0, null],
+      [109, "Mt", "Meitnerium", "(278)", "Transition Metals", 7, 9, "Solid", "[Rn] 5f¹⁴ 6d⁷ 7s²", null, null, 27.0, null],
+      [110, "Ds", "Darmstadtium", "(281)", "Transition Metals", 7, 10, "Solid", "[Rn] 5f¹⁴ 6d⁸ 7s²", null, null, 26.0, null],
+      [111, "Rg", "Roentgenium", "(282)", "Transition Metals", 7, 11, "Solid", "[Rn] 5f¹⁴ 6d⁹ 7s²", null, null, 22.0, null],
+      [112, "Cn", "Copernicium", "(285)", "Transition Metals", 7, 12, "Liquid", "[Rn] 5f¹⁴ 6d¹⁰ 7s²", null, 84, 14.0, null],
+      [113, "Nh", "Nihonium", "(286)", "Post-Transition Metals", 7, 13, "Solid", "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p¹", 430, 1130, 16.0, null],
+      [114, "Fl", "Flerovium", "(289)", "Post-Transition Metals", 7, 14, "Solid", "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p²", -73, 107, 11.4, null],
+      [115, "Mc", "Moscovium", "(290)", "Post-Transition Metals", 7, 15, "Solid", "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p³", 400, 1100, 13.5, null],
+      [116, "Lv", "Livermorium", "(293)", "Post-Transition Metals", 7, 16, "Solid", "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁴", 436, 812, 12.9, null],
+      [117, "Ts", "Tennessine", "(294)", "Halogens", 7, 17, "Solid", "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁵", 450, 610, 7.1, null],
+      [118, "Og", "Oganesson", "(294)", "Noble Gases", 7, 18, "Gas", "[Rn] 5f¹⁴ 6d¹⁰ 7s² 7p⁶", 52, 177, 7.0, null]
+    ];
+
+    /**
+     * Transform raw tuples into structured element objects and sort by atomic number.
+     */
+    const ELEMENTS = RAW_ELEMENTS.map((item) => ({
+      atomicNumber: item[0],
+      symbol: item[1],
+      name: item[2],
+      atomicMass: item[3],
+      category: item[4],
+      row: item[5],
+      col: item[6],
+      state: item[7],
+      electronConfiguration: item[8],
+      meltingPoint: item[9],
+      boilingPoint: item[10],
+      density: item[11],
+      electronegativity: item[12]
+    })).sort((a, b) => a.atomicNumber - b.atomicNumber);
+
+    /**
+     * Compute electron shell counts (K, L, M, N, O, P, Q) for the Bohr diagram.
+     */
+    function getElectronShells(atomicNumber) {
+      const shellCapacities = [2, 8, 18, 32, 32, 18, 8];
+      const shells = [];
+      let remaining = atomicNumber;
+      for (let i = 0; i < shellCapacities.length && remaining > 0; i++) {
+        const count = Math.min(remaining, shellCapacities[i]);
+        shells.push(count);
+        remaining -= count;
+      }
+      return shells;
+    }
+
+    /**
+     * Render a clean SVG Bohr model representation for the selected element.
+     */
+    function renderBohrModelSVG(atomicNumber) {
+      const svg = document.getElementById("bohr-svg");
+      const shells = getElectronShells(atomicNumber);
+      const center = 50;
+      const maxRadius = 44;
+      const minRadius = 12;
+      const step = shells.length > 1 ? (maxRadius - minRadius) / (shells.length - 1) : 0;
+
+      let markup = `<circle cx="${center}" cy="${center}" r="6" fill="#ea4335" />`;
+      markup += `<circle cx="${center - 2}" cy="${center - 1.5}" r="2.2" fill="#4285f4" />`;
+
+      shells.forEach((electronCount, idx) => {
+        const radius = shells.length === 1 ? 26 : minRadius + idx * step;
+        markup += `<circle cx="${center}" cy="${center}" r="${radius.toFixed(1)}" fill="none" stroke="#dadce0" stroke-width="1" />`;
+
+        for (let e = 0; e < electronCount; e++) {
+          const angle = (2 * Math.PI * e) / electronCount - Math.PI / 2;
+          const ex = center + radius * Math.cos(angle);
+          const ey = center + radius * Math.sin(angle);
+          markup += `<circle cx="${ex.toFixed(1)}" cy="${ey.toFixed(1)}" r="1.8" fill="#1a73e8" />`;
+        }
+      });
+
+      svg.innerHTML = markup;
+      document.getElementById("detail-shells-text").textContent = `Shells: ${shells.join(" - ")}`;
+    }
+
+    /**
+     * Format optional numeric property values with units or return "Unavailable".
+     */
+    function formatProperty(value, unit = "") {
+      if (value === null || value === undefined || value === "") {
+        return "Unavailable";
+      }
+      return unit ? `${value} ${unit}` : `${value}`;
+    }
+
+    /**
+     * Display the clicked element's information in the details panel below the table.
+     */
+    function showElementDetails(element, clickedButton) {
+      // Update active button outline state
+      const allButtons = document.querySelectorAll(".element-tile");
+      allButtons.forEach((btn) => btn.classList.remove("selected-tile"));
+      if (clickedButton) {
+        clickedButton.classList.add("selected-tile");
+      }
+
+      // Hide placeholder and reveal details content
+      const placeholder = document.getElementById("details-placeholder");
+      const content = document.getElementById("details-content");
+      placeholder.classList.add("hidden");
+      content.classList.remove("hidden");
+
+      // Style the badge according to the element's category
+      const theme = CATEGORY_CLASS_MAP[element.category];
+      const badge = document.getElementById("detail-tile-badge");
+      badge.className = `w-20 h-20 rounded-xl border flex flex-col items-center justify-center shrink-0 shadow-sm ${theme.tile}`;
+
+      document.getElementById("detail-badge-number").textContent = element.atomicNumber;
+      document.getElementById("detail-badge-symbol").textContent = element.symbol;
+      document.getElementById("detail-badge-mass").textContent = element.atomicMass;
+
+      // Header title & category indicator
+      document.getElementById("detail-title").textContent = `${element.name} (${element.symbol})`;
+      document.getElementById("detail-atomic-sup").textContent = `#${element.atomicNumber}`;
+
+      const categoryDot = document.getElementById("detail-category-dot");
+      categoryDot.className = `w-3 h-3 rounded-full border-2 inline-block ${theme.dot}`;
+      document.getElementById("detail-category-label").textContent = element.category;
+
+      // Render Bohr SVG
+      renderBohrModelSVG(element.atomicNumber);
+
+      // Populate all 10 required properties
+      document.getElementById("prop-name-symbol").textContent = `${element.name} (${element.symbol})`;
+      document.getElementById("prop-atomic-number").textContent = element.atomicNumber;
+      document.getElementById("prop-atomic-mass").textContent = `${element.atomicMass} u`;
+      document.getElementById("prop-category").textContent = element.category;
+      document.getElementById("prop-state").textContent = formatProperty(element.state);
+      document.getElementById("prop-electron-config").textContent = formatProperty(element.electronConfiguration);
+      document.getElementById("prop-melting-point").textContent = formatProperty(element.meltingPoint, "°C");
+      document.getElementById("prop-boiling-point").textContent = formatProperty(element.boilingPoint, "°C");
+      document.getElementById("prop-density").textContent = formatProperty(element.density, "g/cm³");
+      document.getElementById("prop-electronegativity").textContent = formatProperty(element.electronegativity);
+    }
+
+    /**
+     * Filter elements by selected category dropdown value.
+     */
+    function applyCategoryFilter(selectedCategory) {
+      const tiles = document.querySelectorAll(".element-tile");
+      tiles.forEach((tile) => {
+        const tileCategory = tile.getAttribute("data-category");
+        if (selectedCategory === "All Categories") {
+          tile.classList.remove("dimmed", "highlighted");
+        } else if (tileCategory === selectedCategory) {
+          tile.classList.remove("dimmed");
+          tile.classList.add("highlighted");
+        } else {
+          tile.classList.remove("highlighted");
+          tile.classList.add("dimmed");
+        }
+      });
+    }
+
+    /**
+     * Build the 18-column Periodic Table DOM inside #periodic-table.
+     */
+    function renderPeriodicTable() {
+      const tableContainer = document.getElementById("periodic-table");
+      tableContainer.innerHTML = "";
+
+      // Add visual spacer row between main table (rows 1-7) and Lanthanides/Actinides (rows 9-10)
+      const spacer = document.createElement("div");
+      spacer.className = "f-block-spacer";
+      spacer.setAttribute("aria-hidden", "true");
+      tableContainer.appendChild(spacer);
+
+      // Add subtle series markers in column 3 of rows 9 and 10
+      const lanthanideMarker = document.createElement("div");
+      lanthanideMarker.className = "series-marker";
+      lanthanideMarker.style.gridRow = "9";
+      lanthanideMarker.style.gridColumn = "3";
+      lanthanideMarker.setAttribute("aria-hidden", "true");
+      lanthanideMarker.innerHTML = `<span>58–71</span><span class="text-[9px] font-normal">Lanthanides</span>`;
+      tableContainer.appendChild(lanthanideMarker);
+
+      const actinideMarker = document.createElement("div");
+      actinideMarker.className = "series-marker";
+      actinideMarker.style.gridRow = "10";
+      actinideMarker.style.gridColumn = "3";
+      actinideMarker.setAttribute("aria-hidden", "true");
+      actinideMarker.innerHTML = `<span>90–103</span><span class="text-[9px] font-normal">Actinides</span>`;
+      tableContainer.appendChild(actinideMarker);
+
+      // Render each of the 118 elements as an accessible <button> tile
+      ELEMENTS.forEach((element) => {
+        const theme = CATEGORY_CLASS_MAP[element.category];
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = `element-tile ${theme.tile}`;
+        btn.style.gridRow = String(element.row);
+        btn.style.gridColumn = String(element.col);
+        btn.setAttribute("data-atomic-number", String(element.atomicNumber));
+        btn.setAttribute("data-category", element.category);
+        btn.setAttribute(
+          "aria-label",
+          `${element.name}, Symbol ${element.symbol}, Atomic number ${element.atomicNumber}, ${element.category}`
+        );
+
+        btn.innerHTML = `
+          <span class="tile-number">${element.atomicNumber}</span>
+          <span class="tile-symbol">${element.symbol}</span>
+          <span class="tile-name">${element.name}</span>
+          <span class="tile-mass">${element.atomicMass}</span>
+        `;
+
+        // Attach click listener via addEventListener (no inline handlers)
+        btn.addEventListener("click", () => {
+          showElementDetails(element, btn);
+        });
+
+        tableContainer.appendChild(btn);
+      });
+    }
+
+    /**
+     * Initialize application on DOMContentLoaded.
+     */
+    document.addEventListener("DOMContentLoaded", () => {
+      renderPeriodicTable();
+
+      const categorySelect = document.getElementById("category-select");
+      categorySelect.addEventListener("change", (event) => {
+        applyCategoryFilter(event.target.value);
+      });
+    });
+  </script>
+</body>
+</html>
